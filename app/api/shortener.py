@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
+
 import string
 import secrets
 
 from fastapi import HTTPException, Depends, APIRouter, Request
 from fastapi.responses import RedirectResponse
 
+from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
@@ -37,8 +39,9 @@ def create_short_url(
     short = ShortUrl(
         code=code,
         original_url=url_str,
-        owner_client_id="default",
-        created_by_user_id=None,
+        # TODO: add client_id and user_id from headers/JWT
+        # owner_client_id="default",
+        # created_by_user_id=None,
         # TODO: insert expires_at logic here in future
         # expires_at left as None for now – can add API control later
         extras=data.extras,
@@ -60,12 +63,13 @@ def create_short_url(
 @router.get("/{code}", name="redirect_to_url")
 def redirect_to_url(code: str, db: Session = Depends(get_db)):
     try:
-        short = db.query(ShortUrl).filter_by(code=code).one()
+        # old style query
+        # short = db.query(ShortUrl).filter_by(code=code).one()
+        # new style from SQLAlchemy 2.0+
+        stmt = select(ShortUrl).where(ShortUrl.code == code)
+        short = db.execute(stmt).scalars().one()
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Short URL not found")
-
-    # if not short:
-    #     raise HTTPException(status_code=404, detail="Short URL not found")
 
     if not short.is_active:
         raise HTTPException(status_code=410, detail="Short URL inactive")
@@ -86,7 +90,8 @@ def redirect_to_url(code: str, db: Session = Depends(get_db)):
 @router.get("/api/stats/{code}", response_model=ShortUrlStats)
 def get_stats(code: str, db: Session = Depends(get_db)):
     try:
-        short = db.query(ShortUrl).filter_by(code=code).one()
+        stmt = select(ShortUrl).where(ShortUrl.code == code)
+        short = db.execute(stmt).scalars().one()
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Short URL not found")
 

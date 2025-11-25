@@ -1,5 +1,7 @@
+import os
 from typing import Generator
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -7,9 +9,8 @@ from sqlalchemy.orm import sessionmaker
 from app.main import app
 from app.database import Base, get_db
 
-
-# Use a separate SQLite DB for tests (file-based so it's shared across connections)
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test_shortener.db"
+TEST_DB_PATH = "./test_shortener.db"
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{TEST_DB_PATH}"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
@@ -17,6 +18,20 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_database():
+    """Create the test DB once at test session startup, and delete it after."""
+    # Create tables for the test DB
+    Base.metadata.create_all(bind=engine)
+
+    yield  # Run the actual tests here
+
+    # Cleanup after all tests finish
+    if os.path.exists(TEST_DB_PATH):
+        os.remove(TEST_DB_PATH)
+
+
+# Override the DB dependency
 def override_get_db() -> Generator:
     db = TestingSessionLocal()
     try:
@@ -25,12 +40,10 @@ def override_get_db() -> Generator:
         db.close()
 
 
-# Create tables in the test DB
-Base.metadata.create_all(bind=engine)
-
-# Override the dependency in the FastAPI app
 app.dependency_overrides[get_db] = override_get_db
 
 
-def get_test_client() -> TestClient:
+@pytest.fixture()
+def client() -> TestClient:
+    """Provide a fresh TestClient for each test."""
     return TestClient(app)

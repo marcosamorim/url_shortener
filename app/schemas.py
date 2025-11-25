@@ -1,8 +1,14 @@
+# app/schemas.py
+from datetime import datetime
+from typing import Any
+
 from pydantic import BaseModel, AnyHttpUrl
 
 
 class ShortenRequest(BaseModel):
     url: AnyHttpUrl
+    # optional metadata your other services can send
+    extras: dict[str, Any] | None = None
 
 
 class ShortenResponse(BaseModel):
@@ -10,8 +16,17 @@ class ShortenResponse(BaseModel):
     short_url: str
     original_url: str
 
-# TODO: add metadata too
+
 class ShortUrlStats(BaseModel):
     code: str
     original_url: str
+
+    owner_client_id: str
+    created_by_user_id: str | None = None
+
+    created_at: datetime
+    expires_at: datetime | None = None
+    is_active: bool
+
     clicks: int
+    extras: dict[str, Any] | None = None

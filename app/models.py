@@ -10,13 +10,16 @@ class ShortUrl(Base):
     code = Column(String(16), unique=True, index=True, nullable=False)
     original_url = Column(String(2048), index=True, nullable=False)
 
-    # TODO: when we add auth/users later
-    # created_by = Column(Integer, index=True, nullable=True) # user_id / client_id
+    # Which app/service created this link
+    owner_client_id = Column(String(64), index=True, nullable=False, default="default")
+    # Which user created it (from your auth system), optional for now
+    created_by_user_id = Column(String(128), index=True, nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     expires_at = Column(DateTime(timezone=True), nullable=True)
     # in case we want to disable the link for any reason
     is_active = Column(Boolean, default=True, nullable=False)
 
-    # user metadata
+    # metadata
     clicks = Column(Integer, default=0, nullable=False)
     extras = Column(JSON, nullable=True)  # JSON (tags, campaign, etc.)

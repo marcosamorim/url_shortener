@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import string
 import secrets
 
@@ -31,9 +32,17 @@ def create_short_url(
 
     # generate the code for the new short url
     code = generate_code(db)
-    # TODO: insert expires_at logic here in future
     # save the short url to the database
-    short = ShortUrl(code=code, original_url=url_str)
+    # TODO: resolve real client_id and user_id from headers/JWT
+    short = ShortUrl(
+        code=code,
+        original_url=url_str,
+        owner_client_id="default",
+        created_by_user_id=None,
+        # TODO: insert expires_at logic here in future
+        # expires_at left as None for now – can add API control later
+        extras=data.extras,
+    )
     db.add(short)
     db.commit()
     # refresh the short url to get the id
@@ -61,6 +70,12 @@ def redirect_to_url(code: str, db: Session = Depends(get_db)):
     if not short.is_active:
         raise HTTPException(status_code=410, detail="Short URL inactive")
 
+    if short.expires_at is not None:
+        now = datetime.now(timezone.utc)
+
+        if short.expires_at <= now:
+            raise HTTPException(status_code=410, detail="Short URL has expired")
+
     short.clicks += 1
     db.commit()
 
@@ -78,5 +93,11 @@ def get_stats(code: str, db: Session = Depends(get_db)):
     return ShortUrlStats(
         code=short.code,
         original_url=short.original_url,
+        owner_client_id=short.owner_client_id,
+        created_by_user_id=short.created_by_user_id,
+        created_at=short.created_at,
+        expires_at=short.expires_at,
+        is_active=short.is_active,
         clicks=short.clicks,
+        extras=short.extras,
     )

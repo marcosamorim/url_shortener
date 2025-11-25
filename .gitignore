@@ -24,3 +24,8 @@ venv/
 
 # Uvicorn logs
 *.log
+
+# Coverage
+.coverage
+coverage.xml
+htmlcov/

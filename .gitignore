@@ -8,7 +8,6 @@ __pycache__/
 .venv/
 env/
 venv/
-.python-version
 
 # IDE
 .vscode/

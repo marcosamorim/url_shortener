@@ -1,20 +1,20 @@
 # URL Shortener (FastAPI + SQLAlchemy)
 
-A lightweight and extensible URL shortener service built with **FastAPI**, **SQLAlchemy**, and **SQLite**.  
+A lightweight and extensible URL shortener service built with **FastAPI**, **SQLAlchemy**, and **SQLite**.
 This project was created primarily for learning and as a base for future microservice integrations.
 
 ---
 
 ## 🚀 Features
 
-- Shorten any valid HTTP/HTTPS URL  
-- Random unique 6-character codes  
-- Automatic redirects using **307 Temporary Redirect**  
-- Stores links in a SQLite database  
-- Tracks number of clicks  
-- Clean project structure using routers, models, and schemas  
-- Fully typed (Pydantic v2 + SQLAlchemy)  
-- Auto-generated interactive API docs via Swagger/OpenAPI  
+- Shorten any valid HTTP/HTTPS URL
+- Random unique 6-character codes
+- Automatic redirects using **307 Temporary Redirect**
+- Stores links in a SQLite database
+- Tracks number of clicks
+- Clean project structure using routers, models, and schemas
+- Fully typed (Pydantic v2 + SQLAlchemy)
+- Auto-generated interactive API docs via Swagger/OpenAPI
 
 ---
 
@@ -68,14 +68,14 @@ uvicorn app.main:app --reload
 
 Visit:
 
-- API Docs → http://127.0.0.1:8000/docs  
-- ReDoc → http://127.0.0.1:8000/redoc  
+- API Docs → http://127.0.0.1:8000/docs
+- ReDoc → http://127.0.0.1:8000/redoc
 
 ---
 
 ## 📌 Usage
 
-### 1. Shorten a URL  
+### 1. Shorten a URL
 **POST** `/shorten`
 
 Example request:
@@ -96,14 +96,14 @@ Example response:
 }
 ```
 
-### 2. Redirect  
+### 2. Redirect
 Open the generated short URL in the browser:
 
 ```
 GET /aB3k9X
 ```
 
-### 3. Stats  
+### 3. Stats
 **GET** `/api/stats/{code}`
 
 Returns click count and metadata.
@@ -112,11 +112,11 @@ Returns click count and metadata.
 
 ## 🛠️ Tech Stack
 
-- **FastAPI** — web framework  
-- **SQLAlchemy ORM** — database layer  
-- **SQLite** — lightweight storage  
-- **Pydantic v2** — data validation and serialization  
-- **Uvicorn** — ASGI server  
+- **FastAPI** — web framework
+- **SQLAlchemy ORM** — database layer
+- **SQLite** — lightweight storage
+- **Pydantic v2** — data validation and serialization
+- **Uvicorn** — ASGI server
 
 ---
 
@@ -124,16 +124,16 @@ Returns click count and metadata.
 
 This project is intentionally minimal, but can be easily extended:
 
-- Async SQLAlchemy (async engine + async sessions)  
-- Custom URL codes  
-- Link expiration (`expires_at`)  
-- User accounts + per-user stats  
-- Redis caching for redirect lookup  
-- Docker image for deployment  
-- Postgres/MySQL backends  
-- QR code generation  
-- Rate limiting  
-- Analytics dashboard  
+- Async SQLAlchemy (async engine + async sessions)
+- Custom URL codes
+- Link expiration (`expires_at`)
+- User accounts + per-user stats
+- Redis caching for redirect lookup
+- Docker image for deployment
+- Postgres/MySQL backends
+- QR code generation
+- Rate limiting
+- Analytics dashboard
 
 ---
 

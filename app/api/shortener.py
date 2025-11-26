@@ -1,18 +1,16 @@
+import secrets
+import string
 from datetime import datetime, timezone
 
-import string
-import secrets
-
-from fastapi import HTTPException, Depends, APIRouter, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
-
 from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import ShortUrl
-from app.schemas import ShortenResponse, ShortUrlStats, ShortenRequest
+from app.schemas import ShortenRequest, ShortenResponse, ShortUrlStats
 
 router = APIRouter(tags=["shortener"])
 

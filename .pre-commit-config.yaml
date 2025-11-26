@@ -1,21 +1,23 @@
 repos:
-  # Basic hygiene hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^alembic/
       - id: end-of-file-fixer
+        exclude: ^alembic/
       - id: check-merge-conflict
+        exclude: ^alembic/
 
-  # isort: import sorting (run BEFORE black)
   - repo: https://github.com/PyCQA/isort
     rev: 5.13.2
     hooks:
       - id: isort
         args: ["--profile", "black"]
+        exclude: ^alembic/
 
-  # black: code formatter
   - repo: https://github.com/psf/black
     rev: 24.8.0
     hooks:
       - id: black
+        exclude: ^alembic/

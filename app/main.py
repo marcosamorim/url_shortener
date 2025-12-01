@@ -1,8 +1,25 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import redirect as redirect_router
 from app.api import shortener as shortener_router
 
 app = FastAPI(title="URL Shortener Service")
+
+origins = [
+    "http://localhost:3000",  # Next dev
+    "http://localhost:4200",  # Angular dev
+    # add your deployed frontend domain here later, e.g.:
+    # "https://your-next-app.vercel.app",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # or ["*"] while debugging
+    allow_credentials=False,
+    allow_methods=["POST", "GET"],  # important: let it handle OPTIONS
+    allow_headers=["Content-Type"],
+)
 
 
 @app.get("/health")
@@ -11,3 +28,4 @@ def health():
 
 
 app.include_router(shortener_router.router)
+app.include_router(redirect_router.router)

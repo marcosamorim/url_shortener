@@ -9,6 +9,7 @@ app = FastAPI(title="URL Shortener Service")
 origins = [
     "http://localhost:3000",  # Next dev
     "http://localhost:4200",  # Angular dev
+    "https://angular.rdrt.uk",  # Angular prod (temp)
     # add your deployed frontend domain here later, e.g.:
     # "https://your-next-app.vercel.app",
 ]

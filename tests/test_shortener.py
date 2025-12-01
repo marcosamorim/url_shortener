@@ -5,7 +5,7 @@ from tests.conftest import client
 
 def test_shorten_creates_short_url_and_redirect_works(client):
     # 1) Shorten a valid URL
-    resp = client.post("/shorten", json={"url": "https://www.google.com"})
+    resp = client.post("/api/shorten", json={"url": "https://www.google.com"})
     assert resp.status_code == 200
 
     data = resp.json()
@@ -22,14 +22,14 @@ def test_shorten_creates_short_url_and_redirect_works(client):
 
 
 def test_shorten_rejects_invalid_url(client):
-    resp = client.post("/shorten", json={"url": "not-a-url"})
+    resp = client.post("/api/shorten", json={"url": "not-a-url"})
     # Pydantic validation should fail and FastAPI will return 422
     assert resp.status_code == 422
 
 
 def test_stats_returns_metadata_and_clicks_increment(client):
     # 1) Create a short URL
-    resp = client.post("/shorten", json={"url": "https://example.com"})
+    resp = client.post("/api/shorten", json={"url": "https://example.com"})
     assert resp.status_code == 200
     data = resp.json()
     code = data["code"]

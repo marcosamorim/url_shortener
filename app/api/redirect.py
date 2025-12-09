@@ -1,40 +1,43 @@
-from datetime import datetime, timezone
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
-from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.database import get_db
 from app.models import ShortUrl
-from app.schemas import ShortenRequest, ShortenResponse, ShortUrlStats
+from app.schemas import ShortenRequest, ShortenResponse
+from app.security import get_current_token_payload
 
-router = APIRouter(tags=["Redirect"])
+router = APIRouter(prefix="/", tags=["redirect"])
+
+# ---------------------------
+# Public redirect endpoint
+# ---------------------------
 
 
-@router.get("/{code}", name="redirect_to_url")
+@public_router.get("/{code}", name="redirect_to_url")
 def redirect_to_url(code: str, db: Session = Depends(get_db)):
-    try:
-        # old style query
-        # short = db.query(ShortUrl).filter_by(code=code).one()
-        # new style from SQLAlchemy 2.0+
-        stmt = select(ShortUrl).where(ShortUrl.code == code)
-        short = db.execute(stmt).scalars().one()
-    except NoResultFound:
-        raise HTTPException(status_code=404, detail="Short URL not found")
+    """
+    Public redirect:
+      - No auth ever required
+      - Checks is_active and expires_at
+      - Increments click count
+    """
+    stmt = select(ShortUrl).where(ShortUrl.code == code)
+    short = db.execute(stmt).scalars().first()
 
-    if not short.is_active:
-        raise HTTPException(status_code=410, detail="Short URL inactive")
+    if not short or not short.is_active or is_expired(short):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Short URL not found or inactive",
+        )
 
-    if short.expires_at is not None:
-        now = datetime.now(timezone.utc)
-
-        if short.expires_at <= now:
-            raise HTTPException(status_code=410, detail="Short URL has expired")
-
+    # Increment clicks
     short.clicks += 1
+    db.add(short)
     db.commit()
 
-    # 307 keeps method (GET stays GET, POST stays POST if ever needed)
-    return RedirectResponse(url=str(short.original_url), status_code=307)
+    return RedirectResponse(
+        url=short.original_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT
+    )

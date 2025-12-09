@@ -1,6 +1,7 @@
-from sqlalchemy import JSON, Boolean, Column, DateTime, Integer, String, func
+from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, Integer, String, func
 
 from app.database import Base
+from app.enums import SourceType
 
 
 class ShortUrl(Base):
@@ -19,6 +20,13 @@ class ShortUrl(Base):
     expires_at = Column(DateTime(timezone=True), nullable=True)
     # in case we want to disable the link for any reason
     is_active = Column(Boolean, default=True, nullable=False)
+
+    source_type = Column(
+        Enum(SourceType, name="source_type_enum"),
+        nullable=False,
+        default=SourceType.ANONYMOUS,
+        server_default=SourceType.ANONYMOUS.value,
+    )
 
     # metadata
     clicks = Column(Integer, default=0, nullable=False)

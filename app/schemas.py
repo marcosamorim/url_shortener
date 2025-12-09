@@ -27,5 +27,6 @@ class ShortUrlStats(BaseModel):
     expires_at: datetime | None = None
     is_active: bool
 
+    source_type: ShortType
     clicks: int
     extras: dict[str, Any] | None = None

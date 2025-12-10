@@ -5,7 +5,7 @@ from app.enums import SourceType
 
 
 class ShortUrl(Base):
-    __tablename__ = "short_urls"
+    __tablename__ = "shortener__short_urls"
 
     id = Column(Integer, primary_key=True, index=True)
     code = Column(String(16), unique=True, index=True, nullable=False)

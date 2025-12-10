@@ -15,7 +15,7 @@ def _str_to_bool(value: str | None, default: bool = True) -> bool:
 
 
 class Settings(BaseModel):
-    SQLALCHEMY_DATABASE_URI: str = os.getenv(
+    DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
         "sqlite:///./shortener.db",
     )

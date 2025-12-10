@@ -24,13 +24,16 @@ class Settings(BaseModel):
 
     AUTH_ENABLED: bool = _str_to_bool(os.getenv("AUTH_ENABLED", "true"), default=True)
 
+    # TODO: Implement OAuth properly later, let's focus on token atm
     # Always defined, just may be None when auth disabled
-    OAUTH2_TOKEN_URL: Optional[str] = os.getenv(
-        "OAUTH2_TOKEN_URL",
-        "http://localhost:8001/auth/login",
-    )
+    # OAUTH2_TOKEN_URL: Optional[str] = os.getenv(
+    #     "OAUTH2_TOKEN_URL",
+    #     "http://localhost:8001/auth/login",
+    # )
     JWT_SECRET_KEY: Optional[str] = os.getenv("JWT_SECRET_KEY")
     JWT_ALGORITHM: Optional[str] = os.getenv("JWT_ALGORITHM", "HS256")
+    JWT_ISSUER: str = os.getenv("JWT_ISSUER", "auth-service")
+    JWT_AUDIENCE: list[str] = ["shortener-service"]
 
     class Config:
         arbitrary_types_allowed = True
@@ -45,8 +48,8 @@ class Settings(BaseModel):
                 raise ValueError("JWT_SECRET_KEY must be set when AUTH_ENABLED=true")
             if not self.JWT_ALGORITHM:
                 raise ValueError("JWT_ALGORITHM must be set when AUTH_ENABLED=true")
-            if not self.OAUTH2_TOKEN_URL:
-                raise ValueError("OAUTH2_TOKEN_URL must be set when AUTH_ENABLED=true")
+            # if not self.OAUTH2_TOKEN_URL:
+            #     raise ValueError("OAUTH2_TOKEN_URL must be set when AUTH_ENABLED=true")
         return self
 
 

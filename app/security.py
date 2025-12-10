@@ -2,47 +2,75 @@ from typing import Any, Dict, Optional
 
 import jwt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWTError
 
 from app.core.config import settings
 
-oauth2_scheme: Optional[OAuth2PasswordBearer]
-
-if settings.AUTH_ENABLED:
-    oauth2_scheme = OAuth2PasswordBearer(
-        tokenUrl=settings.OAUTH2_TOKEN_URL  # type: ignore[arg-type]
-    )
-else:
-    oauth2_scheme = None  # type: ignore[assignment]
+bearer_scheme = HTTPBearer(auto_error=settings.AUTH_ENABLED)
 
 
 def decode_access_token(token: str) -> Dict[str, Any]:
     try:
         payload = jwt.decode(
             token,
-            settings.JWT_SECRET_KEY,  # guaranteed not None if AUTH_ENABLED=True
+            settings.JWT_SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM],
+            audience=settings.JWT_AUDIENCE,
+            options={"require": ["exp", "iat", "iss", "aud", "sub"]},
         )
+
+        # verify issuer
+        if payload.get("iss") != settings.JWT_ISSUER:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token issuer",
+            )
+
         return payload
-    except PyJWTError as e:
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+        )
+    except jwt.InvalidAudienceError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token audience",
+        )
+    except jwt.InvalidIssuerError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token issuer",
+        )
+    except jwt.PyJWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
-        ) from e
+        )
 
 
 def get_current_token_payload(
-    token: Optional[str] = Depends(oauth2_scheme) if settings.AUTH_ENABLED else None,
+    credentials: Optional[HTTPAuthorizationCredentials] = (
+        Depends(bearer_scheme) if settings.AUTH_ENABLED else None
+    ),
 ) -> Dict[str, Any]:
+    """
+    When AUTH_ENABLED = true:
+        - Swagger / clients must send Authorization: Bearer <token>
+        - This function decodes and returns the payload.
+    When AUTH_ENABLED = false:
+        - No auth required, returns {} and no header needed.
+    """
     if not settings.AUTH_ENABLED:
-        # Auth disabled → do nothing, let everyone in
         return {}
 
-    if not token:
+    if credentials is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing token",
+            detail="Missing credentials",
         )
 
+    token = credentials.credentials
     return decode_access_token(token)

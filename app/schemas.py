@@ -3,6 +3,8 @@ from typing import Any
 
 from pydantic import AnyHttpUrl, BaseModel
 
+from app.enums import SourceType
+
 
 class ShortenRequest(BaseModel):
     url: AnyHttpUrl
@@ -27,6 +29,6 @@ class ShortUrlStats(BaseModel):
     expires_at: datetime | None = None
     is_active: bool
 
-    source_type: ShortType
+    source_type: SourceType
     clicks: int
     extras: dict[str, Any] | None = None

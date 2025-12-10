@@ -3,20 +3,18 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
+from app.api.helpers import is_expired
 from app.database import get_db
 from app.models import ShortUrl
-from app.schemas import ShortenRequest, ShortenResponse
-from app.security import get_current_token_payload
 
-router = APIRouter(prefix="/", tags=["redirect"])
+router = APIRouter(tags=["redirect"])
 
 # ---------------------------
 # Public redirect endpoint
 # ---------------------------
 
 
-@public_router.get("/{code}", name="redirect_to_url")
+@router.get("/{code}", name="redirect_to_url")
 def redirect_to_url(code: str, db: Session = Depends(get_db)):
     """
     Public redirect:

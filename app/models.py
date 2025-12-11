@@ -1,33 +1,60 @@
-from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, Integer, String, func
+from datetime import datetime
+from typing import Any, Dict, Optional
 
-from app.database import Base
+from sqlalchemy import JSON, Column, DateTime, func
+from sqlmodel import Field, SQLModel
+
 from app.enums import SourceType
 
 
-class ShortUrl(Base):
+class ShortUrl(SQLModel, table=True):
     __tablename__ = "shortener__short_urls"
 
-    id = Column(Integer, primary_key=True, index=True)
-    code = Column(String(16), unique=True, index=True, nullable=False)
-    original_url = Column(String(2048), index=True, nullable=False)
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+    code: str = Field(index=True, nullable=False, max_length=16, unique=True)
+    original_url: str = Field(nullable=False, max_length=2048, index=True)
 
     # Which app/service created this link
-    owner_client_id = Column(String(64), index=True, nullable=False, default="default")
-    # Which user created it (from your auth system), optional for now
-    created_by_user_id = Column(String(128), index=True, nullable=True)
-
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    expires_at = Column(DateTime(timezone=True), nullable=True)
-    # in case we want to disable the link for any reason
-    is_active = Column(Boolean, default=True, nullable=False)
-
-    source_type = Column(
-        Enum(SourceType, name="source_type_enum"),
+    owner_client_id: str = Field(
+        default="default",
         nullable=False,
+        max_length=64,
+        index=True,
+    )
+
+    # Which user created it (from your auth system), optional
+    created_by_user_id: Optional[str] = Field(
+        default=None,
+        max_length=128,
+        index=True,
+    )
+
+    # timestamps
+    created_at: datetime = Field(
+        sa_column=Column(
+            DateTime(timezone=True),
+            server_default=func.now(),
+            nullable=False,
+        )
+    )
+    expires_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
+
+    # flags
+    is_active: bool = Field(default=True, nullable=False)
+
+    # stored as TEXT in the DB, validated as Enum in Python/Pydantic
+    source_type: SourceType = Field(
         default=SourceType.ANONYMOUS,
-        server_default=SourceType.ANONYMOUS.value,
+        nullable=False,
     )
 
     # metadata
-    clicks = Column(Integer, default=0, nullable=False)
-    extras = Column(JSON, nullable=True)  # JSON (tags, campaign, etc.)
+    clicks: int = Field(default=0, nullable=False)
+    extras: Optional[Dict[str, Any]] = Field(
+        default=None,
+        sa_column=Column(JSON, nullable=True),
+    )

@@ -8,3 +8,4 @@ PyJWT==2.10.1
 cryptography==46.0.3
 python-dotenv==1.0.1
 psycopg[binary]==3.3.2
+sqlmodel==0.0.27

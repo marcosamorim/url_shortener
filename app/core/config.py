@@ -14,6 +14,10 @@ def _str_to_bool(value: str | None, default: bool = True) -> bool:
     return value in ("1", "true", "yes", "on")
 
 
+def _split_csv(value: str) -> list[str]:
+    return [v.strip() for v in value.split(",") if v.strip()]
+
+
 class Settings(BaseModel):
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
@@ -30,13 +34,12 @@ class Settings(BaseModel):
     #     "OAUTH2_TOKEN_URL",
     #     "http://localhost:8001/auth/login",
     # )
-    JWT_SECRET_KEY: Optional[str] = os.getenv("JWT_SECRET_KEY")
-    JWT_ALGORITHM: Optional[str] = os.getenv("JWT_ALGORITHM", "HS256")
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")
+    JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     JWT_ISSUER: str = os.getenv("JWT_ISSUER", "auth-service")
-    JWT_AUDIENCE: list[str] = ["shortener-service"]
+    JWT_AUDIENCE: list[str] = _split_csv(os.getenv("JWT_AUDIENCE", "shortener-service"))
 
-    class Config:
-        arbitrary_types_allowed = True
+    CORS_ORIGINS: list[str] = _split_csv(os.getenv("CORS_ORIGINS", ""))
 
     @model_validator(mode="after")
     def _validate_auth_fields(self) -> "Settings":

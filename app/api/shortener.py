@@ -1,3 +1,5 @@
+from typing import Any, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -8,7 +10,7 @@ from app.database import get_db
 from app.enums import SourceType
 from app.models import ShortUrl
 from app.schemas import ShortenRequest, ShortenResponse
-from app.security import get_current_token_payload
+from app.security import get_optional_token_payload
 
 router = APIRouter(prefix="/api", tags=["shortener"])
 
@@ -17,7 +19,7 @@ router = APIRouter(prefix="/api", tags=["shortener"])
 def create_short_url(
     data: ShortenRequest,
     db: Session = Depends(get_db),
-    token_payload: dict = Depends(get_current_token_payload),
+    token_payload: dict = Depends(get_optional_token_payload),
 ):
     """
     Always creates a NEW short URL.
@@ -41,6 +43,7 @@ def create_short_url(
         source_type = SourceType.ANONYMOUS
 
     code = generate_code(db)
+    print(f"client_id {client_id}")
 
     owner_client_id = client_id or (
         SourceType.ANONYMOUS if not token_payload else SourceType.UNKNOWN
@@ -70,8 +73,14 @@ def create_short_url(
 def get_stats(
     code: str,
     db: Session = Depends(get_db),
-    token_payload: dict = Depends(get_current_token_payload),
+    token_payload: Optional[dict[str, Any]] = Depends(get_optional_token_payload),
 ):
+    """
+    Stats visibility rules:
+    - Anonymous: clicks only
+    - Authenticated owner: full stats
+    - Authenticated non-owner: public stats
+    """
     stmt = select(ShortUrl).where(ShortUrl.code == code)
     short = db.execute(stmt).scalars().first()
 
@@ -81,33 +90,35 @@ def get_stats(
             detail="Short URL not found",
         )
 
-    # AUTH_DISABLED → stats public
+    # AUTH DISABLED → full access (standalone mode)
     if not settings.AUTH_ENABLED:
-        return _stats_payload(short)
+        return _private_stats_payload(short)
 
-    # AUTH_ENABLED → enforce user-centric rules
-    user_id = token_payload.get("sub") if token_payload else None
+    # AUTH ENABLED → public vs private split
+    # (if token_payload is None, that is anonymous and, we show only public stats)
+    if token_payload is None:
+        return _public_stats_payload(short)
 
-    if short.created_by_user_id is not None:
-        # user-owned link → only that user can see stats
-        if user_id != short.created_by_user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have permission to view stats for this short URL",
-            )
-    else:
-        # no user bound (service / anonymous)
-        # For now: require *some* authenticated user, but don't tie to a specific sub.
-        if not user_id:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication required to view stats",
-            )
+    user_id = token_payload.get("sub")
 
-    return _stats_payload(short)
+    if short.created_by_user_id:
+        # user-owned link → only owner sees private stats
+        if str(user_id) != str(short.created_by_user_id):
+            return _public_stats_payload(short)
+        return _private_stats_payload(short)
+
+    # anonymous / service-created links
+    return _public_stats_payload(short)
 
 
-def _stats_payload(short: ShortUrl):
+def _public_stats_payload(short: ShortUrl) -> dict[str, Any]:
+    return {
+        "code": short.code,
+        "clicks": short.clicks,
+    }
+
+
+def _private_stats_payload(short: ShortUrl) -> dict[str, Any]:
     return {
         "code": short.code,
         "original_url": short.original_url,

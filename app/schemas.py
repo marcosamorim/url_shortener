@@ -18,7 +18,12 @@ class ShortenResponse(BaseModel):
     original_url: str
 
 
-class ShortUrlStats(BaseModel):
+class PublicURLStats(BaseModel):
+    code: str
+    clicks: int
+
+
+class PrivateURLStats(BaseModel):
     code: str
     original_url: str
 

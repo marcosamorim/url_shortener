@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 
 from app import __version__
 from app.api import redirect as redirect_router
@@ -19,9 +20,17 @@ if settings.CORS_ORIGINS:
     )
 
 
-@app.get("/health")
+@app.get("/health", include_in_schema=False)
 def health():
     return {"status": "ok"}
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    if settings.FRONTEND_URL:
+        return RedirectResponse(url=settings.FRONTEND_URL, status_code=302)
+    # Standalone / no frontend configured
+    return {"service": "shortener", "status": "ok"}
 
 
 app.include_router(shortener_router.router)

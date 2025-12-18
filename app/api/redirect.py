@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -13,9 +13,13 @@ router = APIRouter(tags=["redirect"])
 # Public redirect endpoint
 # ---------------------------
 
+CODE_REGEX = r"^[A-Za-z0-9]{6,16}$"
 
-@router.get("/{code}", name="redirect_to_url")
-def redirect_to_url(code: str, db: Session = Depends(get_db)):
+
+@router.get("/{code}", name="redirect_to_url", include_in_schema=False)
+def redirect_to_url(
+    code: str = Path(..., pattern=CODE_REGEX), db: Session = Depends(get_db)
+):
     """
     Public redirect:
       - No auth ever required

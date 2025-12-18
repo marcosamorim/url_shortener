@@ -43,7 +43,6 @@ def create_short_url(
         source_type = SourceType.ANONYMOUS
 
     code = generate_code(db)
-    print(f"client_id {client_id}")
 
     owner_client_id = client_id or (
         SourceType.ANONYMOUS if not token_payload else SourceType.UNKNOWN

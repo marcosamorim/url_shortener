@@ -25,6 +25,7 @@ class Settings(BaseModel):
     )
 
     BASE_URL: str = os.getenv("BASE_URL", "http://127.0.0.1:8000")
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "")
 
     AUTH_ENABLED: bool = _str_to_bool(os.getenv("AUTH_ENABLED", "true"), default=True)
 

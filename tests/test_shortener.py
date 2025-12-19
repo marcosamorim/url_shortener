@@ -1,6 +1,16 @@
+import pytest
 from fastapi.testclient import TestClient
 
+from app.core.config import settings
 from tests.conftest import client
+
+
+@pytest.fixture(autouse=True)
+def auth_disabled():
+    original = settings.AUTH_ENABLED
+    settings.AUTH_ENABLED = False
+    yield
+    settings.AUTH_ENABLED = original
 
 
 def test_shorten_creates_short_url_and_redirect_works(client):

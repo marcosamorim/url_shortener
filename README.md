@@ -161,6 +161,12 @@ If you want a standalone mode without auth, set `AUTH_ENABLED=false`.
 
 ---
 
+## 🧭 Design Notes
+
+This service is live, so security is prioritized. The original idea was to keep all features open when `AUTH_ENABLED=false`, but user‑scoped endpoints (like `GET /api/me/urls`) are intentionally locked. That keeps behavior closer to a production‑grade service and avoids accidental data exposure.
+
+---
+
 ## 📦 Future Improvements
 
 This project is intentionally minimal, but can be easily extended:

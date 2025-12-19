@@ -32,7 +32,7 @@ def redirect_to_url(
     if not short or not short.is_active or is_expired(short):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Short URL not found or inactive",
+            detail="Short URL not found",
         )
 
     # Increment clicks

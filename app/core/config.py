@@ -42,6 +42,11 @@ class Settings(BaseModel):
 
     CORS_ORIGINS: list[str] = _split_csv(os.getenv("CORS_ORIGINS", ""))
 
+    # Simple in-memory rate limiting (per IP)
+    RATE_LIMIT_ENABLED: bool = _str_to_bool(os.getenv("RATE_LIMIT_ENABLED", "true"))
+    RATE_LIMIT_REQUESTS: int = int(os.getenv("RATE_LIMIT_REQUESTS", "30"))
+    RATE_LIMIT_WINDOW_SECONDS: int = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
+
     @model_validator(mode="after")
     def _validate_auth_fields(self) -> "Settings":
         """

@@ -161,6 +161,20 @@ If you want a standalone mode without auth, set `AUTH_ENABLED=false`.
 
 ---
 
+## 🧰 Rate Limiting (simple, in-memory)
+
+`POST /api/shorten` is protected with a lightweight in‑memory rate limiter keyed by client IP. Configure via:
+
+```
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_REQUESTS=30
+RATE_LIMIT_WINDOW_SECONDS=60
+```
+
+This is intended for learning/local use and can be replaced with a gateway‑level or Redis‑backed limiter later.
+
+---
+
 ## 🧭 Design Notes
 
 This service is live, so security is prioritized. The original idea was to keep all features open when `AUTH_ENABLED=false`, but user‑scoped endpoints (like `GET /api/me/urls`) are intentionally locked. That keeps behavior closer to a production‑grade service and avoids accidental data exposure.
@@ -172,9 +186,10 @@ This service is live, so security is prioritized. The original idea was to keep 
 This project is intentionally minimal, but can be easily extended:
 
 - Async SQLAlchemy (async engine + async sessions)
-- Custom URL codes
+- Custom aliases / slugs
 - Link expiration (`expires_at`)
 - User accounts + per-user stats
+- Owner-only metadata surfaced in user dashboards (e.g., client_id)
 - Redis caching for redirect lookup
 - Docker image for deployment
 - Postgres/MySQL backends

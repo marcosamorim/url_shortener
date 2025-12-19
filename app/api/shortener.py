@@ -1,7 +1,7 @@
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.helpers import generate_code
@@ -9,8 +9,8 @@ from app.core.config import settings
 from app.database import get_db
 from app.enums import SourceType
 from app.models import ShortUrl
-from app.schemas import ShortenRequest, ShortenResponse
-from app.security import get_optional_token_payload
+from app.schemas import MyUrlItem, MyUrlsResponse, ShortenRequest, ShortenResponse
+from app.security import get_optional_token_payload, get_required_token_payload
 
 router = APIRouter(prefix="/api", tags=["shortener"])
 
@@ -110,10 +110,61 @@ def get_stats(
     return _public_stats_payload(short)
 
 
+@router.get("/me/urls", response_model=MyUrlsResponse)
+def list_my_urls(
+    page: int = 1,
+    page_size: int = 10,
+    db: Session = Depends(get_db),
+    token_payload: dict = Depends(get_required_token_payload),
+):
+    """
+    List URLs created by the authenticated user.
+    """
+    if page < 1 or page_size < 1 or page_size > 50:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid pagination params",
+        )
+
+    user_id = token_payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload (missing sub)",
+        )
+
+    stmt = select(ShortUrl).where(ShortUrl.created_by_user_id == str(user_id))
+    total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
+
+    urls = (
+        db.execute(
+            stmt.order_by(ShortUrl.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        .scalars()
+        .all()
+    )
+
+    items = [
+        MyUrlItem(
+            code=short.code,
+            short_url=f"{settings.BASE_URL}/{short.code}",
+            original_url=short.original_url,
+            clicks=short.clicks,
+            created_at=short.created_at,
+        )
+        for short in urls
+    ]
+
+    return MyUrlsResponse(items=items, page=page, page_size=page_size, total=total)
+
+
 def _public_stats_payload(short: ShortUrl) -> dict[str, Any]:
     return {
         "code": short.code,
-        "clicks": short.clicks,
+        "original_url": short.original_url,
+        "created_at": short.created_at,
     }
 
 

@@ -5,6 +5,15 @@ This project was created primarily for learning and as a base for future microse
 
 ---
 
+## Related Services
+
+These repos are related but designed to run standalone as well:
+
+- Auth service: https://github.com/marcosamorim/auth-service
+- Angular frontend: https://github.com/marcosamorim/url_shortener_ng
+
+---
+
 ## 🚀 Features
 
 - Shorten any valid HTTP/HTTPS URL
@@ -73,6 +82,18 @@ Visit:
 
 ---
 
+## 🐳 Docker Compose (optional)
+
+Run the full microservice stack locally:
+
+```bash
+docker compose up
+```
+
+To build just this service locally while the others use images, keep the same command and add a `docker-compose.override.yml` with a `build:` for this repo (already provided).
+
+---
+
 ## 📌 Usage
 
 ### 1. Shorten a URL
@@ -117,6 +138,26 @@ Returns click count and metadata.
 - **SQLite** — lightweight storage
 - **Pydantic v2** — data validation and serialization
 - **Uvicorn** — ASGI server
+
+---
+
+## 🔐 Auth Integration (JWT)
+
+This service can validate JWTs issued by the [`auth-service`](https://github.com/marcosamorim/auth-service) and uses the token to:
+- tag ownership on `/api/shorten`
+- gate private stats on `/api/stats/{code}`
+
+Set these env vars to match the auth service:
+
+```
+AUTH_ENABLED=true
+JWT_SECRET_KEY=change_me
+JWT_ALGORITHM=HS256
+JWT_ISSUER=auth-service
+JWT_AUDIENCE=shortener-service
+```
+
+If you want a standalone mode without auth, set `AUTH_ENABLED=false`.
 
 ---
 

@@ -1,0 +1,39 @@
+services:
+  auth-service:
+    image: ghcr.io/marcosamorim/auth-service:latest
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: sqlite:///./auth.db
+      JWT_SECRET_KEY: change_me
+      JWT_ALGORITHM: HS256
+      JWT_ACCESS_TOKEN_EXPIRES_MINUTES: "30"
+      JWT_ISSUER: auth-service
+      JWT_AUDIENCE: shortener-service
+      CORS_ORIGINS: http://localhost:4200
+
+  url-shortener:
+    image: ghcr.io/marcosamorim/url_shortener:latest
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: sqlite:///./shortener.db
+      BASE_URL: http://localhost:8000
+      FRONTEND_URL: http://localhost:4200
+      AUTH_ENABLED: "true"
+      JWT_SECRET_KEY: change_me
+      JWT_ALGORITHM: HS256
+      JWT_ISSUER: auth-service
+      JWT_AUDIENCE: shortener-service
+      CORS_ORIGINS: http://localhost:4200
+    depends_on:
+      - auth-service
+
+  url-shortener-ng:
+    image: ghcr.io/marcosamorim/url_shortener_ng:latest
+    ports:
+      - "4200:4200"
+    environment:
+      PORT: "4200"
+    depends_on:
+      - url-shortener

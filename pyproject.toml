@@ -6,3 +6,14 @@ target-version = ["py312"]
 profile = "black"
 line_length = 88
 known_first_party = ["app", "tests"]
+
+[tool.bumpversion]
+current_version = "0.2.0"
+commit = false
+tag = false
+message = "chore: bump version {current_version} -> {new_version}"
+
+[[tool.bumpversion.files]]
+filename = "app/__init__.py"
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'

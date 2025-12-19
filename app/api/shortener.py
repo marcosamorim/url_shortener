@@ -1,14 +1,15 @@
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.helpers import generate_code
+from app.api.helpers import generate_code, is_expired
 from app.core.config import settings
 from app.database import get_db
 from app.enums import SourceType
 from app.models import ShortUrl
+from app.rate_limit import enforce_rate_limit
 from app.schemas import MyUrlItem, MyUrlsResponse, ShortenRequest, ShortenResponse
 from app.security import get_optional_token_payload, get_required_token_payload
 
@@ -18,6 +19,7 @@ router = APIRouter(prefix="/api", tags=["shortener"])
 @router.post("/shorten", response_model=ShortenResponse)
 def create_short_url(
     data: ShortenRequest,
+    request: Request,
     db: Session = Depends(get_db),
     token_payload: dict = Depends(get_optional_token_payload),
 ):
@@ -30,6 +32,14 @@ def create_short_url(
       - source_type        = 'human' | 'service' | 'anonymous'
     """
     url_str = str(data.url)
+
+    forwarded_for = request.headers.get("x-forwarded-for")
+    client_ip = (
+        forwarded_for.split(",")[0].strip()
+        if forwarded_for
+        else (request.client.host if request.client else "unknown")
+    )
+    enforce_rate_limit(f"{client_ip}:shorten")
 
     user_id = token_payload.get("sub") if token_payload else None
     client_id = token_payload.get("client_id") if token_payload else None
@@ -54,6 +64,7 @@ def create_short_url(
         owner_client_id=owner_client_id,
         created_by_user_id=user_id,
         source_type=source_type,
+        expires_at=data.expires_at,
         extras=data.extras,
     )
 
@@ -83,7 +94,7 @@ def get_stats(
     stmt = select(ShortUrl).where(ShortUrl.code == code)
     short = db.execute(stmt).scalars().first()
 
-    if not short:
+    if not short or not short.is_active or is_expired(short):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Short URL not found",

@@ -9,6 +9,7 @@ from app.enums import SourceType
 class ShortenRequest(BaseModel):
     url: AnyHttpUrl
     # optional metadata your other services can send
+    expires_at: datetime | None = None
     extras: dict[str, Any] | None = None
 
 

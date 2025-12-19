@@ -1,6 +1,20 @@
-from fastapi.testclient import TestClient
+from datetime import datetime, timedelta, timezone
 
-from tests.conftest import client
+import pytest
+from fastapi.testclient import TestClient
+from sqlmodel import select
+
+from app.core.config import settings
+from app.models import ShortUrl
+from tests.conftest import client, db_session
+
+
+@pytest.fixture(autouse=True)
+def auth_disabled():
+    original = settings.AUTH_ENABLED
+    settings.AUTH_ENABLED = False
+    yield
+    settings.AUTH_ENABLED = original
 
 
 def test_shorten_creates_short_url_and_redirect_works(client):
@@ -58,3 +72,55 @@ def test_redirect_not_found(client):
     resp = client.get("/nonexistentcode", follow_redirects=False)
     assert resp.status_code == 404
     assert resp.json()["detail"] == "Short URL not found"
+
+
+def test_expired_link_redirects_404(client: TestClient, db_session):
+    expired = ShortUrl(
+        code="EXP123",
+        original_url="https://example.com/expired",
+        expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+        is_active=True,
+    )
+    db_session.add(expired)
+    db_session.commit()
+
+    resp = client.get("/EXP123", follow_redirects=False)
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Short URL not found"
+
+
+def test_expired_link_stats_404(client: TestClient, db_session):
+    expired = ShortUrl(
+        code="EXPST1",
+        original_url="https://example.com/expired-stats",
+        expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+        is_active=True,
+    )
+    db_session.add(expired)
+    db_session.commit()
+
+    resp = client.get("/api/stats/EXPST1")
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Short URL not found"
+
+
+def test_shorten_persists_expires_at(client: TestClient, db_session):
+    expires_at = datetime.now(timezone.utc) + timedelta(days=1)
+
+    resp = client.post(
+        "/api/shorten",
+        json={
+            "url": "https://example.com/future",
+            "expires_at": expires_at.isoformat(),
+        },
+    )
+    assert resp.status_code == 200
+
+    code = resp.json()["code"]
+    row = (
+        db_session.execute(select(ShortUrl).where(ShortUrl.code == code))
+        .scalars()
+        .first()
+    )
+    assert row is not None
+    assert row.expires_at is not None

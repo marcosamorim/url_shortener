@@ -20,7 +20,7 @@ class ShortenResponse(BaseModel):
 
 class PublicURLStats(BaseModel):
     code: str
-    clicks: int
+    original_url: str
 
 
 class PrivateURLStats(BaseModel):
@@ -37,3 +37,18 @@ class PrivateURLStats(BaseModel):
     source_type: SourceType
     clicks: int
     extras: dict[str, Any] | None = None
+
+
+class MyUrlItem(BaseModel):
+    code: str
+    short_url: str
+    original_url: str
+    clicks: int
+    created_at: datetime
+
+
+class MyUrlsResponse(BaseModel):
+    items: list[MyUrlItem]
+    page: int
+    page_size: int
+    total: int

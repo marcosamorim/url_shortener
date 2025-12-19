@@ -31,4 +31,7 @@ def is_expired(short: ShortUrl) -> bool:
         return False
     # Convert now to timezone-aware
     now = datetime.now(timezone.utc)
-    return short.expires_at <= now
+    expires_at = short.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    return expires_at <= now

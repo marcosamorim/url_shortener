@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.helpers import generate_code
+from app.api.helpers import generate_code, is_expired
 from app.core.config import settings
 from app.database import get_db
 from app.enums import SourceType
@@ -64,6 +64,7 @@ def create_short_url(
         owner_client_id=owner_client_id,
         created_by_user_id=user_id,
         source_type=source_type,
+        expires_at=data.expires_at,
         extras=data.extras,
     )
 
@@ -93,7 +94,7 @@ def get_stats(
     stmt = select(ShortUrl).where(ShortUrl.code == code)
     short = db.execute(stmt).scalars().first()
 
-    if not short:
+    if not short or not short.is_active or is_expired(short):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Short URL not found",

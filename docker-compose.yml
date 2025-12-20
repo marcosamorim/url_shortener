@@ -13,7 +13,8 @@ services:
       CORS_ORIGINS: http://localhost:4200
 
   url-shortener:
-    image: ghcr.io/marcosamorim/url_shortener:latest
+    build:
+      context: .
     ports:
       - "8000:8000"
     environment:

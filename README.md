@@ -161,6 +161,12 @@ If you want a standalone mode without auth, set `AUTH_ENABLED=false`.
 
 ---
 
+## 📌 API Versioning
+
+The API is versioned under `/api/v{major}`. The major version is driven by `API_VERSION` (env var), which defaults to the major from `app.__version__`. We keep `/api` as a legacy alias while clients migrate.
+
+---
+
 ## 🧰 Rate Limiting (simple, in-memory)
 
 `POST /api/shorten` is protected with a lightweight in‑memory rate limiter keyed by client IP. Configure via:

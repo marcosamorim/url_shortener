@@ -4,6 +4,8 @@ from typing import Optional
 from dotenv import load_dotenv
 from pydantic import BaseModel, model_validator
 
+from app import __version__
+
 load_dotenv(override=False)
 
 
@@ -41,6 +43,8 @@ class Settings(BaseModel):
     JWT_AUDIENCE: list[str] = _split_csv(os.getenv("JWT_AUDIENCE", "shortener-service"))
 
     CORS_ORIGINS: list[str] = _split_csv(os.getenv("CORS_ORIGINS", ""))
+
+    API_VERSION: int = int(os.getenv("API_VERSION", __version__.split(".")[0]))
 
     # Simple in-memory rate limiting (per IP)
     RATE_LIMIT_ENABLED: bool = _str_to_bool(os.getenv("RATE_LIMIT_ENABLED", "true"))

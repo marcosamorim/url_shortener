@@ -35,3 +35,9 @@ def is_expired(short: ShortUrl) -> bool:
     if expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=timezone.utc)
     return expires_at <= now
+
+
+def api_version_prefix() -> str:
+    from app.core.config import settings
+
+    return f"/api/v{settings.API_VERSION}"

@@ -22,6 +22,7 @@ class ShortenResponse(BaseModel):
 class PublicURLStats(BaseModel):
     code: str
     original_url: str
+    created_at: datetime
 
 
 class PrivateURLStats(BaseModel):
@@ -32,12 +33,17 @@ class PrivateURLStats(BaseModel):
     created_by_user_id: str | None = None
 
     created_at: datetime
-    expires_at: datetime | None = None
     is_active: bool
+    expires_at: datetime | None = None
 
     source_type: SourceType
     clicks: int
     extras: dict[str, Any] | None = None
+
+
+class LinkUpdateRequest(BaseModel):
+    is_active: bool | None = None
+    expires_at: datetime | None = None
 
 
 class MyUrlItem(BaseModel):
@@ -46,6 +52,8 @@ class MyUrlItem(BaseModel):
     original_url: str
     clicks: int
     created_at: datetime
+    is_active: bool
+    expires_at: datetime | None = None
 
 
 class MyUrlsResponse(BaseModel):

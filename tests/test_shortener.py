@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import select
 
+from app.api.helpers import api_version_prefix
 from app.core.config import settings
 from app.models import ShortUrl
 from tests.conftest import client, db_session
@@ -19,7 +20,9 @@ def auth_disabled():
 
 def test_shorten_creates_short_url_and_redirect_works(client):
     # 1) Shorten a valid URL
-    resp = client.post("/api/shorten", json={"url": "https://www.google.com"})
+    resp = client.post(
+        f"{api_version_prefix()}/shorten", json={"url": "https://www.google.com"}
+    )
     assert resp.status_code == 200
 
     data = resp.json()
@@ -36,20 +39,22 @@ def test_shorten_creates_short_url_and_redirect_works(client):
 
 
 def test_shorten_rejects_invalid_url(client):
-    resp = client.post("/api/shorten", json={"url": "not-a-url"})
+    resp = client.post(f"{api_version_prefix()}/shorten", json={"url": "not-a-url"})
     # Pydantic validation should fail and FastAPI will return 422
     assert resp.status_code == 422
 
 
 def test_stats_returns_metadata_and_clicks_increment(client):
     # 1) Create a short URL
-    resp = client.post("/api/shorten", json={"url": "https://example.com"})
+    resp = client.post(
+        f"{api_version_prefix()}/shorten", json={"url": "https://example.com"}
+    )
     assert resp.status_code == 200
     data = resp.json()
     code = data["code"]
 
     # 2) Initially, zero clicks
-    stats_resp = client.get(f"/api/stats/{code}")
+    stats_resp = client.get(f"{api_version_prefix()}/stats/{code}")
     assert stats_resp.status_code == 200
     stats = stats_resp.json()
     assert stats["code"] == code
@@ -62,7 +67,7 @@ def test_stats_returns_metadata_and_clicks_increment(client):
     assert redirect_resp.status_code == 307
 
     # 4) Stats should show 1 click now
-    stats_resp2 = client.get(f"/api/stats/{code}")
+    stats_resp2 = client.get(f"{api_version_prefix()}/stats/{code}")
     assert stats_resp2.status_code == 200
     stats2 = stats_resp2.json()
     assert stats2["clicks"] == 1
@@ -99,7 +104,7 @@ def test_expired_link_stats_404(client: TestClient, db_session):
     db_session.add(expired)
     db_session.commit()
 
-    resp = client.get("/api/stats/EXPST1")
+    resp = client.get(f"{api_version_prefix()}/stats/EXPST1")
     assert resp.status_code == 404
     assert resp.json()["detail"] == "Short URL not found"
 
@@ -108,7 +113,7 @@ def test_shorten_persists_expires_at(client: TestClient, db_session):
     expires_at = datetime.now(timezone.utc) + timedelta(days=1)
 
     resp = client.post(
-        "/api/shorten",
+        f"{api_version_prefix()}/shorten",
         json={
             "url": "https://example.com/future",
             "expires_at": expires_at.isoformat(),

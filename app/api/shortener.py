@@ -10,10 +10,18 @@ from app.database import get_db
 from app.enums import SourceType
 from app.models import ShortUrl
 from app.rate_limit import enforce_rate_limit
-from app.schemas import MyUrlItem, MyUrlsResponse, ShortenRequest, ShortenResponse
+from app.schemas import (
+    LinkUpdateRequest,
+    MyUrlItem,
+    MyUrlsResponse,
+    PrivateURLStats,
+    PublicURLStats,
+    ShortenRequest,
+    ShortenResponse,
+)
 from app.security import get_optional_token_payload, get_required_token_payload
 
-router = APIRouter(prefix="/api", tags=["shortener"])
+router = APIRouter(tags=["shortener"])
 
 
 @router.post("/shorten", response_model=ShortenResponse)
@@ -79,7 +87,7 @@ def create_short_url(
     )
 
 
-@router.get("/stats/{code}")
+@router.get("/stats/{code}", response_model=PublicURLStats | PrivateURLStats)
 def get_stats(
     code: str,
     db: Session = Depends(get_db),
@@ -164,11 +172,81 @@ def list_my_urls(
             original_url=short.original_url,
             clicks=short.clicks,
             created_at=short.created_at,
+            is_active=short.is_active,
+            expires_at=short.expires_at,
         )
         for short in urls
     ]
 
     return MyUrlsResponse(items=items, page=page, page_size=page_size, total=total)
+
+
+@router.patch("/links/{code}", response_model=PrivateURLStats)
+def update_link(
+    code: str,
+    payload: LinkUpdateRequest,
+    db: Session = Depends(get_db),
+    token_payload: dict = Depends(get_required_token_payload),
+):
+    if payload.is_active is None and payload.expires_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No updates provided",
+        )
+
+    stmt = select(ShortUrl).where(ShortUrl.code == code)
+    short = db.execute(stmt).scalars().first()
+
+    if not short:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Short URL not found",
+        )
+
+    user_id = token_payload.get("sub")
+    if not short.created_by_user_id or str(user_id) != str(short.created_by_user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not allowed to modify this link",
+        )
+
+    if payload.is_active is not None:
+        short.is_active = payload.is_active
+    if payload.expires_at is not None:
+        short.expires_at = payload.expires_at
+
+    db.add(short)
+    db.commit()
+    db.refresh(short)
+
+    return _private_stats_payload(short)
+
+
+@router.delete("/links/{code}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_link(
+    code: str,
+    db: Session = Depends(get_db),
+    token_payload: dict = Depends(get_required_token_payload),
+):
+    stmt = select(ShortUrl).where(ShortUrl.code == code)
+    short = db.execute(stmt).scalars().first()
+
+    if not short:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Short URL not found",
+        )
+
+    user_id = token_payload.get("sub")
+    if not short.created_by_user_id or str(user_id) != str(short.created_by_user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not allowed to modify this link",
+        )
+
+    short.is_active = False
+    db.add(short)
+    db.commit()
 
 
 def _public_stats_payload(short: ShortUrl) -> dict[str, Any]:
